@@ -1,6 +1,8 @@
 import { getRepository } from 'typeorm'
 import Orphanages from '../models/Orphanages'
 import { Request, Response} from 'express'
+import OrphanageView from '../views/Orphanagesview'
+import * as yup from 'yup';
 
 export default {
 
@@ -10,17 +12,21 @@ export default {
 
         const orphanagesRepository = getRepository(Orphanages);
 
-        const orphanage = await orphanagesRepository.findOneOrFail(id);
+        const orphanage = await orphanagesRepository.findOneOrFail(id, {
+            relations: ['images']
+        });
 
-        return res.json(orphanage)
+        return res.json(OrphanageView.render(orphanage))
     },
 
     async index(req:Request, res:Response) {
         const orphanagesRepository = getRepository(Orphanages);
 
-        const orphanages = await orphanagesRepository.find();
+        const orphanages = await orphanagesRepository.find({
+            relations: ['images']
+        });
 
-        return res.json(orphanages)
+        return res.json(OrphanageView.renderMany(orphanages))
     },
 
     async create(req:Request, res:Response) {
@@ -29,9 +35,11 @@ export default {
         const orphanagesRepository = getRepository(Orphanages);
 
         const requestImages = req.files as Express.Multer.File[];
-        const images = 
+        const images = requestImages.map((image) => {
+            return { path: image.filename }
+        })
 
-        const createOrphanage = orphanagesRepository.create({
+        const data = {
             name, 
             latitude, 
             longitude, 
@@ -39,8 +47,27 @@ export default {
             instructions, 
             opening_hours, 
             open_on_weekends,
-            images: 
+            images
+        }
+
+        const schema = yup.object().shape({
+            name: yup.string().required('Campo obrigatório'),
+            latitude: yup.number().required(),
+            longitude: yup.number().required(),
+            about: yup.string().required().max(300),
+            instructions: yup.string().required(),
+            opening_hours: yup.string().required(),
+            open_on_weekends: yup.boolean().required(),
+            images: yup.array(yup.object().shape({
+                path: yup.string().required()
+            }))
         })
+
+        await schema.validate(data, {
+            abortEarly: false
+        })
+
+        const createOrphanage = orphanagesRepository.create(data)
 
         await orphanagesRepository.save(createOrphanage);
 
