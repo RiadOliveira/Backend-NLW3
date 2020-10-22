@@ -8,7 +8,7 @@ interface ValidationErrors {
 const errorHandler:ErrorRequestHandler = (error, req, res, next) => {
 
     if(error instanceof ValidationError) {
-        let errors: ValidationErrors = {}
+        let errors:ValidationErrors = {}
 
         error.inner.forEach(err => {
             errors[err.path] = err.errors

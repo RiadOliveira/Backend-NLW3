@@ -9,9 +9,9 @@ export default {
     async show(req:Request, res:Response) {
 
         const {id} = req.params
-
+        
         const orphanagesRepository = getRepository(Orphanages);
-
+        
         const orphanage = await orphanagesRepository.findOneOrFail(id, {
             relations: ['images']
         });
